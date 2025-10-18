@@ -42,6 +42,16 @@ Every [Person] has many `Addresses` and / or many `Activity Logs`.
 We've created appropriate repositories for entities, and ensure we have some 
 indexes for tables.  
 
+## Tests
+
+Following tests are created:
+
+1. [PersonIntegrationTest] - check that all entities are correctly written, and we are able to successfully save entities into[PostgreSQL] database 
+2. [SqlCaptureInspectorTest] - test for custom `org.hibernate.resource.jdbc.spi.StatementInspector` implementation. We check whether we are able to collect all sql queries or not.
+3. [SqlExecutionPlanTest] - TODO (under construction)
+4. [JpaToSqlConversionTest] - test for checking, whether translation from JPA into sql works properly
+
+
 [Docker]: https://www.docker.com/
 [JDK]: https://www.oracle.com/java/technologies/downloads/
 [Spring Boot Application]: https://spring.io/projects/spring-boot
@@ -50,3 +60,7 @@ indexes for tables.
 [Person]: src/main/java/pl/db/plan/scanner/entities/Person.java
 [Address]: src/main/java/pl/db/plan/scanner/entities/Address.java
 [ActivityLog]: src/main/java/pl/db/plan/scanner/entities/ActivityLog.java
+[PersonIntegrationTest]: src/test/java/pl/db/plan/scanner/integration/PersonIntegrationTest.java
+[SqlCaptureInspectorTest]: src/test/java/pl/db/plan/scanner/inspector/SqlCaptureInspectorTest.java
+[SqlExecutionPlanTest]: src/test/java/pl/db/plan/scanner/inspector/SqlExecutionPlanTest.java
+[JpaToSqlConversionTest]: src/test/java/pl/db/plan/scanner/inspector/JpaToSqlConversionTest.java

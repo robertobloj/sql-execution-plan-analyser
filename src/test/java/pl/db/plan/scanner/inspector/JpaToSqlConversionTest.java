@@ -1,4 +1,4 @@
-package pl.db.plan.scanner;
+package pl.db.plan.scanner.inspector;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -14,7 +14,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import pl.db.plan.scanner.configuration.JpaConfiguration;
 import pl.db.plan.scanner.entities.Person;
-import pl.db.plan.scanner.inspector.SqlCaptureInspector;
 
 import java.util.List;
 
