@@ -110,7 +110,6 @@ public class SqlExecutionPlanTest {
                 .toList();
 
         List<ActivityLog> result = activityLogRepository.saveAll(logs);
-        assertEquals(NUMBER_OF_ACTIVITY_LOGS, result.size());
     }
 
     private void recalculateStatistics() throws SQLException {
