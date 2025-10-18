@@ -1,7 +1,10 @@
 package pl.db.plan.scanner.inspector;
 
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -16,24 +19,33 @@ import pl.db.plan.scanner.entities.ActivityLog;
 import pl.db.plan.scanner.repositories.ActivityLogRepository;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest
 @TestPropertySource(properties = {
-    "spring.jpa.show-sql=true",
+    "spring.jpa.show-sql=false",
     "spring.jpa.properties.hibernate.format_sql=true",
     "spring.jpa.properties.hibernate.use_sql_comments=true"
 })
 @Import(JpaConfiguration.class)
 @Testcontainers
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class SqlExecutionPlanTest {
 
     private static final Integer NUMBER_OF_ACTIVITY_LOGS = 10_000;
+    private static final BigDecimal MAX_COST = BigDecimal.valueOf(1000);
+
+    private static final Pattern PATTERN = Pattern.compile("cost=\\d+\\.\\d+..(\\d+\\.\\d+)");
 
     @Autowired
     private DataSource dataSource;
@@ -57,15 +69,38 @@ public class SqlExecutionPlanTest {
     }
 
     @Test
-    void shouldInsertAndAnalyzeQueryPlan() throws Exception {
-        shouldInsertBulkActivityLogs();
-        recalculateStatistics();
-        printExplainPlan("SELECT * FROM activity_log WHERE action = 'LOGIN'");
+    @Order(1)
+    void testGoodQueryPlanByIndex() {
+        insertBulkActivityLogs(NUMBER_OF_ACTIVITY_LOGS);
+        try {
+            recalculateStatistics();
+
+            var goodQueryPlan = explainPlan("SELECT * FROM activity_log WHERE action = 'LOGIN'");
+            assertThat(goodQueryPlan.fullScan()).as("Query does not have full table scan").isFalse();
+            assertThat(goodQueryPlan.cost()).as("Expected cost < " + MAX_COST).isLessThanOrEqualTo(MAX_COST);
+        } catch (SQLException e) {
+            fail("good query test fail due to sql exception", e);
+        }
+    }
+
+    @Test
+    @Order(2)
+    void testBadQueryPlanWithoutIndex() {
+        insertBulkActivityLogs(NUMBER_OF_ACTIVITY_LOGS * 10);
+        try {
+            recalculateStatistics();
+
+            var badQueryPlan = explainPlan("SELECT * FROM activity_log WHERE timestamp = '" + LocalDateTime.now().minusDays(30) +"'");
+            assertThat(badQueryPlan.fullScan()).as("Expected full table scan").isTrue();
+            assertThat(badQueryPlan.cost()).as("Expected cost > " + MAX_COST).isGreaterThan(MAX_COST);
+        } catch (SQLException e) {
+            fail("bad query test fail due to sql exception", e);
+        }
     }
 
     @Transactional
-    void shouldInsertBulkActivityLogs() {
-        List<ActivityLog> logs = IntStream.range(0, NUMBER_OF_ACTIVITY_LOGS)
+    private void insertBulkActivityLogs(Integer max) {
+        List<ActivityLog> logs = IntStream.range(0, max)
                 .mapToObj(i -> {
                     ActivityLog log = new ActivityLog();
                     log.setAction(i % 2 == 0 ? "LOGIN" : "LOGOUT");
@@ -85,15 +120,30 @@ public class SqlExecutionPlanTest {
         }
     }
 
-    private void printExplainPlan(String sql) throws SQLException {
+    private QueryDetails explainPlan(String sql) throws SQLException {
         try (Connection conn = dataSource.getConnection();
             PreparedStatement stmt = conn.prepareStatement("EXPLAIN " + sql);
             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                String executionPlan = rs.getString(1);
-                System.out.println(executionPlan);
+                StringBuilder plan = new StringBuilder();
+                while (rs.next()) {
+                    plan.append(rs.getString(1)).append("\n");
+                }
+                String planText = plan.toString();
+                boolean hasSeqScan = planText.contains("Seq Scan");
+                BigDecimal totalCost = extractTotalCost(planText);
+                return new QueryDetails(sql, hasSeqScan, totalCost);
             }
-        }
     }
+
+    private BigDecimal extractTotalCost(String planText) {
+        Matcher matcher = PATTERN.matcher(planText);
+        if (matcher.find()) {
+            String group = matcher.group(1);
+            return new BigDecimal(group);
+        }
+        fail("Could not extract cost from plan");
+        return BigDecimal.ZERO;
+    }
+
+
 }
