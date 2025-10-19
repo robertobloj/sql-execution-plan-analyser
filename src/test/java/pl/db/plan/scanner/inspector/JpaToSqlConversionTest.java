@@ -51,7 +51,6 @@ class JpaToSqlConversionTest {
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
     }
 
-
     @Test
     void convertJpaQueryToSql() {
         inspector.clear();
