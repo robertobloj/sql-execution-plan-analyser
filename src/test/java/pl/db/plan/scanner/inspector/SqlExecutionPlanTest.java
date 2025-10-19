@@ -1,11 +1,9 @@
 package pl.db.plan.scanner.inspector;
 
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -15,17 +13,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import pl.db.plan.scanner.configuration.JpaConfiguration;
-import pl.db.plan.scanner.entities.ActivityLog;
-import pl.db.plan.scanner.repositories.ActivityLogRepository;
 
-import javax.sql.DataSource;
-import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -39,18 +29,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 @Import(JpaConfiguration.class)
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class SqlExecutionPlanTest {
-
-    private static final Integer NUMBER_OF_ACTIVITY_LOGS = 10_000;
-    private static final BigDecimal MAX_COST = BigDecimal.valueOf(1000);
-
-    private static final Pattern PATTERN = Pattern.compile("cost=\\d+\\.\\d+..(\\d+\\.\\d+)");
-
-    @Autowired
-    private DataSource dataSource;
-
-    @Autowired
-    private ActivityLogRepository activityLogRepository;
+public class SqlExecutionPlanTest extends AbstractSqlExecutionPlanTest {
 
     @Container
     @SuppressWarnings("resource")
@@ -96,52 +75,5 @@ public class SqlExecutionPlanTest {
             fail("bad query test fail due to sql exception", e);
         }
     }
-
-    @Transactional
-    private void insertBulkActivityLogs(Integer max) {
-        List<ActivityLog> logs = IntStream.range(0, max)
-                .mapToObj(i -> {
-                    ActivityLog log = new ActivityLog();
-                    log.setAction(i % 2 == 0 ? "LOGIN" : "LOGOUT");
-                    log.setTimestamp(LocalDateTime.now().minusDays(i % 300));
-                    return log;
-                })
-                .toList();
-
-        List<ActivityLog> result = activityLogRepository.saveAll(logs);
-    }
-
-    private void recalculateStatistics() throws SQLException {
-        try (Connection conn = dataSource.getConnection();
-            Statement stmt = conn.createStatement()) {
-            stmt.execute("ANALYZE");
-        }
-    }
-
-    private QueryDetails explainPlan(String sql) throws SQLException {
-        try (Connection conn = dataSource.getConnection();
-            PreparedStatement stmt = conn.prepareStatement("EXPLAIN " + sql);
-            ResultSet rs = stmt.executeQuery()) {
-                StringBuilder plan = new StringBuilder();
-                while (rs.next()) {
-                    plan.append(rs.getString(1)).append("\n");
-                }
-                String planText = plan.toString();
-                boolean hasSeqScan = planText.contains("Seq Scan");
-                BigDecimal totalCost = extractTotalCost(planText);
-                return new QueryDetails(sql, hasSeqScan, totalCost);
-            }
-    }
-
-    private BigDecimal extractTotalCost(String planText) {
-        Matcher matcher = PATTERN.matcher(planText);
-        if (matcher.find()) {
-            String group = matcher.group(1);
-            return new BigDecimal(group);
-        }
-        fail("Could not extract cost from plan");
-        return BigDecimal.ZERO;
-    }
-
 
 }

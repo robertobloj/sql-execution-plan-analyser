@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Import(JpaConfiguration.class)
 @Testcontainers
 @Transactional
-public class JpaScannerSqlExecutionPlanTest {
+public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest {
 
     private static final Pattern PARAM_NAME_PATTERN = Pattern.compile(":(\\w+)");
     private static final Integer NUMBER_OF_ENTITIES = 3;
@@ -79,7 +79,7 @@ public class JpaScannerSqlExecutionPlanTest {
         var repositories = findRepositories();
         var jpaQueries = findQueries(repositories);
         var nativeQueries = translateToNativeSql(jpaQueries);
-
+        //fill with data, recalculate, explain plan
         assertNotNull(nativeQueries);
     }
 
