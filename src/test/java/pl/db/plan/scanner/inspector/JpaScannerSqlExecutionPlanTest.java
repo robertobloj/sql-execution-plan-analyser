@@ -41,7 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 })
 @Import(JpaConfiguration.class)
 @Testcontainers
-@Transactional
 public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest {
 
     private static final Pattern PARAM_NAME_PATTERN = Pattern.compile(":(\\w+)");

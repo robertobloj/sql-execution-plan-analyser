@@ -3,8 +3,6 @@ package pl.db.plan.scanner.integration;
 import jakarta.transaction.Transactional;
 import org.instancio.Instancio;
 import org.instancio.Model;
-import org.instancio.Random;
-import org.instancio.generator.Generator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +17,10 @@ import pl.db.plan.scanner.configuration.JpaConfiguration;
 import pl.db.plan.scanner.entities.ActivityLog;
 import pl.db.plan.scanner.entities.Address;
 import pl.db.plan.scanner.entities.Person;
+import pl.db.plan.scanner.generators.ActionGenerator;
+import pl.db.plan.scanner.generators.CityGenerator;
+import pl.db.plan.scanner.generators.EmailGenerator;
+import pl.db.plan.scanner.generators.NameGenerator;
 import pl.db.plan.scanner.repositories.ActivityLogRepository;
 import pl.db.plan.scanner.repositories.AddressRepository;
 import pl.db.plan.scanner.repositories.PersonRepository;
@@ -128,35 +130,8 @@ class PersonIntegrationTest {
                 .ignore(field(Person::getActivityLogs))
                 .ignore(field(Person::getAddresses))
                 .generate(field(Person::getName), gen -> new NameGenerator())
-                .generate(field(Person::getEmail), gen -> gen.text().word())
+                .generate(field(Person::getEmail), gen -> new EmailGenerator())
                 .toModel();
         return Instancio.create(model);
-    }
-
-    private static class CityGenerator implements Generator<String> {
-        private static final List<String> CITIES = List.of("London", "Berlin", "Paris", "Roma", "Warsaw");
-
-        @Override
-        public String generate(Random random) {
-            return CITIES.get(random.intRange(0, CITIES.size() - 1));
-        }
-    }
-
-    private static class ActionGenerator implements Generator<String> {
-        private final List<String> actions = List.of("LOGIN", "LOGOUT", "UPDATE", "DELETE");
-
-        @Override
-        public String generate(Random random) {
-            return actions.get(random.intRange(0, actions.size() - 1));
-        }
-    }
-
-    private static class NameGenerator implements Generator<String> {
-        private final List<String> names = List.of("John", "Kate", "Michael", "Sara");
-
-        @Override
-        public String generate(Random random) {
-            return names.get(random.intRange(0, names.size() - 1));
-        }
     }
 }

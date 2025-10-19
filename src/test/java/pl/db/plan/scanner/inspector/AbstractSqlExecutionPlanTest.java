@@ -16,10 +16,12 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+@Transactional
 public abstract class AbstractSqlExecutionPlanTest {
 
     protected static final Integer NUMBER_OF_ACTIVITY_LOGS = 10_000;
-    protected static final BigDecimal MAX_COST = BigDecimal.valueOf(1000);
+    // for test reason only, we assume 500 is a huge cost
+    protected static final BigDecimal MAX_COST = BigDecimal.valueOf(500);
     protected static final Pattern PATTERN = Pattern.compile("cost=\\d+\\.\\d+..(\\d+\\.\\d+)");
 
     @Autowired
@@ -59,7 +61,6 @@ public abstract class AbstractSqlExecutionPlanTest {
         return BigDecimal.ZERO;
     }
 
-    @Transactional
     protected void insertBulkActivityLogs(Integer max) {
         List<ActivityLog> logs = IntStream.range(0, max)
                 .mapToObj(i -> {

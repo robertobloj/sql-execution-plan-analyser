@@ -53,9 +53,15 @@ public class SqlExecutionPlanTest extends AbstractSqlExecutionPlanTest {
         try {
             recalculateStatistics();
 
-            var goodQueryPlan = explainPlan("SELECT * FROM activity_log WHERE action = 'LOGIN'");
-            assertThat(goodQueryPlan.fullScan()).as("Query does not have full table scan").isFalse();
-            assertThat(goodQueryPlan.cost()).as("Expected cost < " + MAX_COST).isLessThanOrEqualTo(MAX_COST);
+            var plan = explainPlan("SELECT * FROM activity_log WHERE action = 'LOGIN'");
+            assertThat(plan.fullScan()).as("Query does not have full table scan").isFalse();
+            assertThat(plan.cost()).as("Expected cost < " + MAX_COST).isLessThanOrEqualTo(MAX_COST);
+            //noinspection ConstantValue
+            System.out.println(
+                    ">>>>> SQL: " + plan.sql() +
+                    ", COST: " + plan.cost() +
+                    ", PLAN: " + plan.fullScan() + " <<<<<"
+                );
         } catch (SQLException e) {
             fail("good query test fail due to sql exception", e);
         }
@@ -68,12 +74,17 @@ public class SqlExecutionPlanTest extends AbstractSqlExecutionPlanTest {
         try {
             recalculateStatistics();
 
-            var badQueryPlan = explainPlan("SELECT * FROM activity_log WHERE timestamp = '" + LocalDateTime.now().minusDays(30) +"'");
-            assertThat(badQueryPlan.fullScan()).as("Expected full table scan").isTrue();
-            assertThat(badQueryPlan.cost()).as("Expected cost > " + MAX_COST).isGreaterThan(MAX_COST);
+            var plan = explainPlan("SELECT * FROM activity_log WHERE timestamp = '" + LocalDateTime.now().minusDays(30) +"'");
+            assertThat(plan.fullScan()).as("Expected full table scan").isTrue();
+            assertThat(plan.cost()).as("Expected cost > " + MAX_COST).isGreaterThan(MAX_COST);
+            //noinspection ConstantValue
+            System.out.println(
+                    ">>>>> SQL: " + plan.sql() +
+                    ", COST: " + plan.cost() +
+                    ", PLAN: " + plan.fullScan() + " <<<<<"
+            );
         } catch (SQLException e) {
             fail("bad query test fail due to sql exception", e);
         }
     }
-
 }
