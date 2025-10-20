@@ -13,6 +13,9 @@ import java.util.stream.Collectors;
 
 public class SqlRegexHelper {
 
+    private static final Pattern COMPARISON_PATTERN = Pattern.compile(
+        "(?:(\\w+\\.)?(\\w+))\\s*(=|<=|>=|<|>)\\s*\\?"
+    );
     private static final Pattern EQUAL_PATTERN = Pattern.compile(
     "(?:(\\w+\\.)?(\\w+))\\s*=\\s*(?:(\\w+)\\()?\\?(?:\\))?"
     );
@@ -38,11 +41,37 @@ public class SqlRegexHelper {
         var paramMap = query.parameterValues();
 
         sql = replaceEqual(sql, paramMap);
+        sql = replaceComparisons(sql, paramMap);
         sql = replaceIn(sql, paramMap);
         sql = replaceBetween(sql, paramMap);
         sql = replaceLike(sql, paramMap);
         sql = replaceFunctions(sql, paramMap);
         return sql;
+    }
+
+    public String replaceComparisons(String sql, Map<String, Object> paramMap) {
+        Matcher matcher = COMPARISON_PATTERN.matcher(sql);
+        StringBuilder result = new StringBuilder();
+        while (matcher.find()) {
+            String alias = matcher.group(1);
+            String column = matcher.group(2);
+            String operator = matcher.group(3);
+
+            Object value = paramMap.get(column);
+            if (value == null) {
+                value = paramMap.get(toCamelCase(column));
+                if (value == null) {
+                    throw new IllegalArgumentException("Value not found for parameter: " + column);
+                }
+            }
+
+            String formatted = formatValue(value);
+            String replacement = (alias != null ? alias : "") + column + " " + operator + " " + formatted;
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+
+        matcher.appendTail(result);
+        return result.toString();
     }
 
     private String replaceFunctions(String sql, Map<String, Object> paramMap) {

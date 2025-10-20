@@ -92,7 +92,6 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
                 var sql = sqlRegexHelper.replacePlaceholders(q);
                 System.out.println("FIXED SQL: " + sql);
                 try {
-                    //does not work select a1_0.id,a1_0.city,a1_0.person_id,a1_0.postal_code,a1_0.street from address a1_0 where lower(a1_0.city)=lower(?)
                     return explainPlan(sql);
                 } catch (SQLException e) {
                     throw new RuntimeException(e);

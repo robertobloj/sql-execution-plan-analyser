@@ -15,8 +15,8 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     @Query("SELECT a FROM ActivityLog a WHERE a.person.id = :personId AND a.action = :action")
     List<ActivityLog> findByPersonIdAndAction(@Param("personId") Long personId, @Param("action") String action);
 
-    @Query("SELECT a FROM ActivityLog a WHERE a.timestamp >= :from")
-    List<ActivityLog> findRecentLogs(@Param("from") LocalDateTime from);
+    @Query("SELECT a FROM ActivityLog a WHERE a.timestamp >= :timestamp")
+    List<ActivityLog> findRecentLogs(@Param("timestamp") LocalDateTime timestamp);
 
     @Modifying
     @Query("UPDATE ActivityLog a SET a.action = :action WHERE a.id = :id")
