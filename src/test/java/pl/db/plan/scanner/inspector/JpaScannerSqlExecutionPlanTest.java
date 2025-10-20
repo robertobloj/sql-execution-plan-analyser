@@ -85,9 +85,6 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
         assertDoesNotThrow(this::recalculateStatistics);
         assertDoesNotThrow(() -> {
             var plans = nativeQueries.stream().map(q -> {
-
-                // TODO >=, <=, >, <
-
                 System.out.println(q);
                 var sql = sqlRegexHelper.replacePlaceholders(q);
                 System.out.println("FIXED SQL: " + sql);
