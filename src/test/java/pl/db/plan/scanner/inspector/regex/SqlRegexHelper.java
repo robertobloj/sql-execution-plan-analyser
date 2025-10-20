@@ -14,22 +14,22 @@ import java.util.stream.Collectors;
 public class SqlRegexHelper {
 
     private static final Pattern COMPARISON_PATTERN = Pattern.compile(
-        "(?:(\\w+\\.)?(\\w+))\\s*(=|<=|>=|<|>)\\s*\\?"
+    "(\\w+\\.)?(\\w+)\\s*(=|<=|>=|<|>)\\s*\\?"
     );
     private static final Pattern IN_PATTERN = Pattern.compile(
-    "(?:(\\w+\\.)?(\\w+))\\s+IN\\s*\\(\\s*\\?\\s*\\)"
+    "(\\w+\\.)?(\\w+)\\s+IN\\s*\\(\\s*\\?\\s*\\)"
     );
     private static final Pattern BETWEEN_PATTERN = Pattern.compile(
-    "(?:(\\w+\\.)?(\\w+))\\s+BETWEEN\\s+\\?\\s+AND\\s+\\?"
+    "(\\w+\\.)?(\\w+)\\s+BETWEEN\\s+\\?\\s+AND\\s+\\?"
     );
     private static final Pattern LIKE_PATTERN = Pattern.compile(
-    "(?:(\\w+\\.)?(\\w+))\\s+LIKE\\s+\\?"
+    "(\\w+\\.)?(\\w+)\\s+LIKE\\s+\\?"
     );
     private static final Pattern SQL_FUNCTION_PATTERN = Pattern.compile(
     "(\\w+)\\s*\\(\\s*((\\w+\\.)?(\\w+))\\s*\\)\\s*=\\s*(\\w+)\\s*\\(\\s*\\?\\s*\\)"
     );
     private static final Pattern SIMPLE_PARAM_PATTERN = Pattern.compile(
-    "(?:(\\w+\\.)?(\\w+))\\s*=\\s*\\?"
+    "(\\w+\\.)?(\\w+)\\s*=\\s*\\?"
     );
 
     public String replacePlaceholders(NativeQueryRecord query) {
