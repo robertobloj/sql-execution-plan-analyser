@@ -1,8 +1,6 @@
 package pl.db.plan.scanner.integration;
 
 import jakarta.transaction.Transactional;
-import org.instancio.Instancio;
-import org.instancio.Model;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,17 +15,14 @@ import pl.db.plan.scanner.configuration.JpaConfiguration;
 import pl.db.plan.scanner.entities.ActivityLog;
 import pl.db.plan.scanner.entities.Address;
 import pl.db.plan.scanner.entities.Person;
-import pl.db.plan.scanner.generators.ActionGenerator;
 import pl.db.plan.scanner.generators.CityGenerator;
-import pl.db.plan.scanner.generators.EmailGenerator;
-import pl.db.plan.scanner.generators.NameGenerator;
+import pl.db.plan.scanner.generators.EntityGenerator;
 import pl.db.plan.scanner.repositories.ActivityLogRepository;
 import pl.db.plan.scanner.repositories.AddressRepository;
 import pl.db.plan.scanner.repositories.PersonRepository;
 
 import java.util.List;
 
-import static org.instancio.Select.field;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -52,6 +47,9 @@ class PersonIntegrationTest {
     @SuppressWarnings("unused")
     private ActivityLogRepository activityLogRepository;
 
+    @Autowired
+    private EntityGenerator generator;
+
     @Container
     @SuppressWarnings("resource")
     protected static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
@@ -71,9 +69,9 @@ class PersonIntegrationTest {
     @Test
     @Transactional
     void shouldPersistPersonWithRelations() {
-        Person person = createPerson();
-        Address address = createAddress(person);
-        List<ActivityLog> logs = createActivityLogs(person);
+        Person person = generator.createPerson();
+        Address address = generator.createAddress(person);
+        List<ActivityLog> logs = generator.createActivityLogs(person);
 
         Person savedPerson = personRepository.save(person);
         assertNotNull(savedPerson.getId());
@@ -88,50 +86,5 @@ class PersonIntegrationTest {
         assertEquals(address.getCity(), city);
         assertTrue(CityGenerator.CITIES.contains(city));
         assertEquals(logs.size(), saved.getActivityLogs().size());
-    }
-
-    private static List<ActivityLog> createActivityLogs(Person person) {
-        Model<ActivityLog> model = Instancio.of(ActivityLog.class)
-                .ignore(field(ActivityLog::getId))
-                .ignore(field(ActivityLog::getPerson))
-                .generate(field(ActivityLog::getAction), gen -> new ActionGenerator())
-                .generate(field(ActivityLog::getTimestamp), gen -> gen.temporal().localDateTime())
-                .toModel();
-
-        ActivityLog log = Instancio.create(model);
-        log.setPerson(person);
-
-        ActivityLog log2 = Instancio.create(model);
-        log2.setPerson(person);
-
-        List<ActivityLog> logs = List.of(log, log2);
-        person.setActivityLogs(logs);
-        return logs;
-    }
-
-    private static Address createAddress(Person person) {
-        Model<Address> model = Instancio.of(Address.class)
-                .ignore(field(Address::getId))
-                .ignore(field(Address::getPerson))
-                .generate(field(Address::getCity), gen -> new CityGenerator())
-                .generate(field(Address::getStreet), gen -> gen.text().word())
-                .generate(field(Address::getPostalCode), gen -> gen.text().word())
-                .toModel();
-
-        Address address = Instancio.create(model);
-        address.setPerson(person);
-        person.setAddresses(List.of(address));
-        return address;
-    }
-
-    private Person createPerson() {
-        Model<Person> model = Instancio.of(Person.class)
-                .ignore(field(Person::getId))
-                .ignore(field(Person::getActivityLogs))
-                .ignore(field(Person::getAddresses))
-                .generate(field(Person::getName), gen -> new NameGenerator())
-                .generate(field(Person::getEmail), gen -> new EmailGenerator())
-                .toModel();
-        return Instancio.create(model);
     }
 }

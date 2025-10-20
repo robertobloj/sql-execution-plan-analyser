@@ -19,11 +19,11 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     List<ActivityLog> findRecentLogs(@Param("from") LocalDateTime from);
 
     @Modifying
-    @Query("UPDATE ActivityLog a SET a.action = :newAction WHERE a.id = :id")
-    void updateActionById(@Param("id") Long id, @Param("newAction") String newAction);
+    @Query("UPDATE ActivityLog a SET a.action = :action WHERE a.id = :id")
+    void updateActionById(@Param("id") Long id, @Param("action") String action);
 
     @Modifying
-    @Query("UPDATE ActivityLog a SET a.action = :newAction WHERE a.person.id = :personId")
-    int updateActionForPerson(@Param("personId") Long personId, @Param("newAction") String newAction);
+    @Query("UPDATE ActivityLog a SET a.action = :action WHERE a.person.id = :personId")
+    int updateActionForPerson(@Param("personId") Long personId, @Param("action") String action);
 
 }

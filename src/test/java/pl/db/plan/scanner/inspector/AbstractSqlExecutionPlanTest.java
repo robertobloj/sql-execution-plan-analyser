@@ -3,7 +3,11 @@ package pl.db.plan.scanner.inspector;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import pl.db.plan.scanner.entities.ActivityLog;
+import pl.db.plan.scanner.generators.EntityGenerator;
+import pl.db.plan.scanner.inspector.records.ExecutionPlanRecord;
 import pl.db.plan.scanner.repositories.ActivityLogRepository;
+import pl.db.plan.scanner.repositories.AddressRepository;
+import pl.db.plan.scanner.repositories.PersonRepository;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -28,7 +32,21 @@ public abstract class AbstractSqlExecutionPlanTest {
     protected DataSource dataSource;
 
     @Autowired
+    @SuppressWarnings("unused")
+    private PersonRepository personRepository;
+
+    @Autowired
+    @SuppressWarnings("unused")
+    private AddressRepository addressRepository;
+
+    @Autowired
+    @SuppressWarnings("unused")
     private ActivityLogRepository activityLogRepository;
+
+    @Autowired
+    @SuppressWarnings("unused")
+    private EntityGenerator generator;
+
 
     protected void recalculateStatistics() throws SQLException {
         try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
@@ -36,10 +54,10 @@ public abstract class AbstractSqlExecutionPlanTest {
         }
     }
 
-    protected QueryDetails explainPlan(String sql) throws SQLException {
+    protected ExecutionPlanRecord explainPlan(String sql) throws SQLException {
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("EXPLAIN " + sql);
-             ResultSet rs = stmt.executeQuery()) {
+            PreparedStatement stmt = conn.prepareStatement("EXPLAIN " + sql);
+            ResultSet rs = stmt.executeQuery()) {
             StringBuilder plan = new StringBuilder();
             while (rs.next()) {
                 plan.append(rs.getString(1)).append("\n");
@@ -47,7 +65,7 @@ public abstract class AbstractSqlExecutionPlanTest {
             String planText = plan.toString();
             boolean hasSeqScan = planText.contains("Seq Scan");
             BigDecimal totalCost = extractTotalCost(planText);
-            return new QueryDetails(sql, hasSeqScan, totalCost);
+            return new ExecutionPlanRecord(sql, hasSeqScan, totalCost);
         }
     }
 
@@ -72,5 +90,11 @@ public abstract class AbstractSqlExecutionPlanTest {
                 .toList();
 
         activityLogRepository.saveAll(logs);
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    protected void insertBulkPersons(Integer maxPersons, Integer maxAddresses, Integer maxActivities) {
+        var persons = generator.createPersons(maxPersons, maxAddresses, maxActivities);
+        personRepository.saveAll(persons);
     }
 }

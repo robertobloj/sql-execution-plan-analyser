@@ -2,7 +2,6 @@ package pl.db.plan.scanner.inspector;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Transactional;
 import org.instancio.Instancio;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,18 +19,21 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import pl.db.plan.scanner.configuration.JpaConfiguration;
+import pl.db.plan.scanner.inspector.records.NativeQueryRecord;
+import pl.db.plan.scanner.inspector.regex.SqlRegexHelper;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -47,12 +49,14 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
     private static final Integer NUMBER_OF_ENTITIES = 3;
     private static final Integer NUMBER_OF_QUERIES = 7;
 
-
     @Autowired
     private ApplicationContext context;
 
     @Autowired
     private SqlCaptureInspector inspector;
+
+    @Autowired
+    private SqlRegexHelper sqlRegexHelper;
 
     @Autowired
     private EntityManager entityManager;
@@ -74,11 +78,33 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
 
     @Test
     void shouldFindInvalidExecutionPlan() {
-        inspector.clear();
         var repositories = findRepositories();
         var jpaQueries = findQueries(repositories);
         var nativeQueries = translateToNativeSql(jpaQueries);
-        //fill with data, recalculate, explain plan
+        insertBulkPersons(1, 5, 100);
+        assertDoesNotThrow(this::recalculateStatistics);
+        assertDoesNotThrow(() -> {
+            var plans = nativeQueries.stream().map(q -> {
+
+                // TODO >=, <=, >, <
+
+                System.out.println(q);
+                var sql = sqlRegexHelper.replacePlaceholders(q);
+                System.out.println("FIXED SQL: " + sql);
+                try {
+                    //does not work select a1_0.id,a1_0.city,a1_0.person_id,a1_0.postal_code,a1_0.street from address a1_0 where lower(a1_0.city)=lower(?)
+                    return explainPlan(sql);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }).toList();
+
+            plans.forEach(p -> {
+                assertFalse(p.fullScan());
+                assertThat(p.cost()).as("Expected cost < " + MAX_COST).isLessThanOrEqualTo(MAX_COST);
+            });
+        });
+
         assertNotNull(nativeQueries);
     }
 
@@ -126,32 +152,44 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
         return queries;
     }
 
-    private List<String> translateToNativeSql(Map<Class<?>, List<Method>> jpaQueries) {
-        jpaQueries.forEach((clazz, methods) -> methods.forEach(m -> runQuery(m, clazz)));
-        List<String> capturedSql = inspector.getNativeSql();
-        capturedSql.forEach(System.out::println);
-        assertEquals(NUMBER_OF_QUERIES, capturedSql.size(), "We executed all native queries");
-        return capturedSql;
+    private List<NativeQueryRecord> translateToNativeSql(Map<Class<?>, List<Method>> jpaQueries) {
+        List<List<NativeQueryRecord>> capturedSql = jpaQueries.entrySet().stream()
+            .map(e -> {
+                var clazz = e.getKey();
+                var methods = e.getValue();
+                return methods.stream().map(m -> runQuery(m, clazz)).toList();
+            }).toList();
+
+        List<NativeQueryRecord> flatList = capturedSql.stream().flatMap(List::stream).toList();
+        assertEquals(NUMBER_OF_QUERIES, flatList.size(), "We found all queries");
+        return flatList;
     }
 
-    private <T> void runQuery(Method method, Class<T> clazz) {
+    private <T> NativeQueryRecord runQuery(Method method, Class<T> clazz) {
+        inspector.clear();
+
         // retrieve jpql query from method
         Query queryAnnotation = method.getAnnotation(Query.class);
         String jpql = queryAnnotation.value();
 
+        Map<String, Object> parameterValues = null;
         // depends on sql command, slightly different approach
         if (jpql.toLowerCase().startsWith("select")) {
             TypedQuery<T> query = entityManager.createQuery(jpql, clazz);
-            fillQueryParameters(method, jpql, query);
+            parameterValues = fillQueryParameters(method, jpql, query);
             query.getResultList();
         } else {
             var query = entityManager.createQuery(jpql);
-            fillQueryParameters(method, jpql, query);
+            parameterValues = fillQueryParameters(method, jpql, query);
             query.executeUpdate();
         }
+
+        List<String> capturedSql = inspector.getNativeSql();
+        assertEquals(1, capturedSql.size());
+        return new NativeQueryRecord(capturedSql.getFirst(), parameterValues);
     }
 
-    private void fillQueryParameters(Method method, String jpql, jakarta.persistence.Query query) {
+    private Map<String, Object> fillQueryParameters(Method method, String jpql, jakarta.persistence.Query query) {
         Set<String> paramNames = extractNamedParameters(jpql);
         Annotation[][] paramAnnotations = method.getParameterAnnotations();
         Class<?>[] paramTypes = method.getParameterTypes();
@@ -169,6 +207,7 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
             }
         }
         values.forEach(query::setParameter);
+        return values;
     }
 
     private Set<String> extractNamedParameters(String jpql) {
