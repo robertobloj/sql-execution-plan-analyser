@@ -6,6 +6,7 @@ import pl.db.plan.scanner.entities.ActivityLog;
 import pl.db.plan.scanner.entities.Address;
 import pl.db.plan.scanner.entities.Person;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
@@ -33,7 +34,6 @@ public class EntityGenerator {
                 .collect(Collectors.toList());
     }
 
-
     public List<ActivityLog> createActivityLogs(Person person) {
         Model<ActivityLog> model = Instancio.of(ActivityLog.class)
                 .ignore(field(ActivityLog::getId))
@@ -44,12 +44,13 @@ public class EntityGenerator {
 
         ActivityLog log = Instancio.create(model);
         log.setPerson(person);
-
-        ActivityLog log2 = Instancio.create(model);
-        log2.setPerson(person);
-
-        List<ActivityLog> logs = List.of(log, log2);
-        person.setActivityLogs(logs);
+        var logs = person.getActivityLogs();
+        if (logs == null) {
+            person.setActivityLogs(new ArrayList<>(List.of(log)));
+        }
+        else {
+            logs.add(log);
+        }
         return logs;
     }
 
@@ -64,7 +65,13 @@ public class EntityGenerator {
 
         Address address = Instancio.create(model);
         address.setPerson(person);
-        person.setAddresses(List.of(address));
+        List<Address> addresses = person.getAddresses();
+        if (addresses == null) {
+            person.setAddresses(new ArrayList<>(List.of(address)));
+        }
+        else {
+            addresses.add(address);
+        }
         return address;
     }
 

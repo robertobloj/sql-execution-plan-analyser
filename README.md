@@ -51,6 +51,40 @@ Following tests are created:
 3. [SqlExecutionPlanTest] - TODO (under construction)
 4. [JpaToSqlConversionTest] - test for checking, whether translation from JPA into sql works properly
 
+## Postgres SQLs
+
+### Connect to db
+
+```
+psql -h localhost -p 5432 -d testdb -U test
+```
+
+### Check whether you have all indexes or not
+
+```sql
+select t.relname as table_name, i.relname as index_name, a.attname as column_name
+from pg_class t, pg_class i, pg_index ix, pg_attribute a
+where
+    t.oid = ix.indrelid
+    and i.oid = ix.indexrelid
+    and a.attrelid = t.oid
+    and a.attnum = ANY(ix.indkey)
+    and t.relkind = 'r'
+    and t.relname in ('activity_log', 'address', 'person');
+order by t.relname, i.relname;
+```
+
+Output should be similar to this:
+
+| Table name   | Index name              | Column name |
+|:-------------|:------------------------|:------------|
+| activity_log | activity_log_pkey       | id          |
+| address      | address_pkey            | id          |
+| person       | person_pkey             | id          |
+| activity_log | idx_activitylog_action  | action      |
+| address      | idx_address_city        | city        |
+
+
 
 [Docker]: https://www.docker.com/
 [JDK]: https://www.oracle.com/java/technologies/downloads/

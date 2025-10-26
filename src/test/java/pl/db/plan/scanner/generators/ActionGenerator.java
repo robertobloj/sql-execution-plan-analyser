@@ -6,7 +6,9 @@ import org.instancio.generator.Generator;
 import java.util.List;
 
 public class ActionGenerator implements Generator<String> {
-    private final List<String> actions = List.of("LOGIN", "LOGOUT", "UPDATE", "DELETE");
+    private final List<String> actions = List.of(
+            "LOGIN", "LOGOUT", "UPDATE", "DELETE", "INSERT", "SHARE", "PRINT", "COMMENT", "VIEW", "INVITE"
+        );
 
     @Override
     public String generate(Random random) {

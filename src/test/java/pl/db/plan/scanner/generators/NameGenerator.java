@@ -6,7 +6,9 @@ import org.instancio.generator.Generator;
 import java.util.List;
 
 public class NameGenerator implements Generator<String> {
-    private final List<String> names = List.of("John", "Kate", "Michael", "Sara");
+    private final List<String> names = List.of(
+            "John", "Kate", "Michael", "Sara", "Robert", "Anna", "Olivier", "Olivia", "Stuart", "Margaret"
+        );
 
     @Override
     public String generate(Random random) {

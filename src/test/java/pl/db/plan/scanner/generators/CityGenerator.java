@@ -6,7 +6,10 @@ import org.instancio.generator.Generator;
 import java.util.List;
 
 public class CityGenerator implements Generator<String> {
-    public static final List<String> CITIES = List.of("London", "Berlin", "Paris", "Roma", "Warsaw");
+    public static final List<String> CITIES = List.of(
+            "London", "Berlin", "Paris", "Roma", "Warsaw", "New York", "Chicago", "Singapore", "Beijing", "Tokyo",
+            "Cairo", "Abu Dhabi", "Glasgow", "Monaco", "Vien", "Prague", "Buenos Aires", "Melbourne", "Ottawa"
+        );
 
     @Override
     public String generate(Random random) {
