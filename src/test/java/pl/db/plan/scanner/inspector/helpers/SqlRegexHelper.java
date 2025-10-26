@@ -1,4 +1,4 @@
-package pl.db.plan.scanner.inspector.regex;
+package pl.db.plan.scanner.inspector.helpers;
 
 import pl.db.plan.scanner.inspector.records.NativeQueryRecord;
 

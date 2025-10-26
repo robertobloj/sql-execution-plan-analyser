@@ -6,7 +6,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import pl.db.plan.scanner.generators.EntityGenerator;
 import pl.db.plan.scanner.inspector.SqlCaptureInspector;
-import pl.db.plan.scanner.inspector.regex.SqlRegexHelper;
+import pl.db.plan.scanner.inspector.helpers.SqlRegexHelper;
+import pl.db.plan.scanner.inspector.helpers.StringHelper;
 
 @TestConfiguration
 public class JpaConfiguration {
@@ -22,6 +23,11 @@ public class JpaConfiguration {
     @Bean
     public SqlRegexHelper sqlRegexHelper() {
         return new SqlRegexHelper();
+    }
+
+    @Bean
+    public StringHelper stringHelper() {
+        return new StringHelper();
     }
 
     @Bean

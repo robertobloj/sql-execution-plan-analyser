@@ -46,10 +46,11 @@ indexes for tables.
 
 Following tests are created:
 
-1. [PersonIntegrationTest] - check that all entities are correctly written, and we are able to successfully save entities into[PostgreSQL] database 
+1. [PersonIntegrationTest] - check that all entities are correctly written, and we are able to successfully save entities into [PostgreSQL] database 
 2. [SqlCaptureInspectorTest] - test for custom `org.hibernate.resource.jdbc.spi.StatementInspector` implementation. We check whether we are able to collect all sql queries or not.
-3. [SqlExecutionPlanTest] - TODO (under construction)
+3. [SqlExecutionPlanTest] - test whether good query has a good plan and cost and vice versa, bad query has a bad plan. 
 4. [JpaToSqlConversionTest] - test for checking, whether translation from JPA into sql works properly
+5. [JpaScannerSqlExecutionPlanTest] - all in one test. This test scan repositories, find jpa queries and translates it into native sql queries. This is our input for test. Next step is to create example entities, run `ANALYZE` command and finally we check execution plans and costs for each query.
 
 ## Postgres SQLs
 
@@ -98,3 +99,4 @@ Output should be similar to this:
 [SqlCaptureInspectorTest]: src/test/java/pl/db/plan/scanner/inspector/SqlCaptureInspectorTest.java
 [SqlExecutionPlanTest]: src/test/java/pl/db/plan/scanner/inspector/SqlExecutionPlanTest.java
 [JpaToSqlConversionTest]: src/test/java/pl/db/plan/scanner/inspector/JpaToSqlConversionTest.java
+[JpaScannerSqlExecutionPlanTest]: src/test/java/pl/db/plan/scanner/inspector/JpaScannerSqlExecutionPlanTest.java

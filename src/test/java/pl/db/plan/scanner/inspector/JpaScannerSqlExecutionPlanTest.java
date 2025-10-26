@@ -19,8 +19,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import pl.db.plan.scanner.configuration.JpaConfiguration;
+import pl.db.plan.scanner.inspector.helpers.SqlRegexHelper;
+import pl.db.plan.scanner.inspector.helpers.StringHelper;
 import pl.db.plan.scanner.inspector.records.NativeQueryRecord;
-import pl.db.plan.scanner.inspector.regex.SqlRegexHelper;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -32,7 +33,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -46,9 +46,9 @@ import static org.junit.jupiter.api.Assertions.*;
 public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest {
 
     private static final Pattern PARAM_NAME_PATTERN = Pattern.compile(":(\\w+)");
-    private static final Integer NUMBER_OF_ENTITIES = 3;
-    private static final Integer NUMBER_OF_QUERIES = 7;
-    private static final Integer MAX_PERSONS = 1000;
+    private static final Integer EXPECTED_NUMBER_OF_ENTITIES = 3;
+    private static final Integer EXPECTED_NUMBER_OF_QUERIES = 7;
+    private static final Integer MAX_PERSONS = 1;
     private static final Integer MAX_ADDRESSES = 5;
     private static final Integer MAX_ACTIVITIES = 100;
 
@@ -63,6 +63,9 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private StringHelper stringHelper;
 
     @Container
     @SuppressWarnings("resource")
@@ -98,14 +101,18 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
                 }
             }).toList();
 
-            // Generally you should ensure here that you have no full scan queries and cost is lower than threshold
-//            plans.forEach(p -> {
-//                assertFalse(p.fullScan());
-//                assertThat(p.cost()).as("Expected cost < " + MAX_COST).isLessThanOrEqualTo(MAX_COST);
-//            });
-
-
-
+            // Generally you should ensure here that you have no full scan queries and cost is lower than threshold.
+            // For this demo app, we've built some simple jpa queries, where execution plan contains and does not
+            // contain full scan (to ensure, everything is working properly). The same scenario is for a total cost.
+            // Test containers is used only to test validation logic, whether it works or not.
+            // If you want to check your project entities, you should replace testcontainers by real db connection,
+            // where you check sql queries with real statistics.
+            //plans.forEach(p -> {
+            //    assertFalse(p.fullScan());
+            //    assertThat(p.cost()).as("Expected cost < " + MAX_COST).isLessThanOrEqualTo(MAX_COST);
+            //});
+            stringHelper.printTable(plans);
+            assertEquals(EXPECTED_NUMBER_OF_QUERIES, plans.size());
         });
 
         assertNotNull(nativeQueries);
@@ -123,7 +130,7 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
             return null;
         }).filter(Objects::nonNull).collect(Collectors.toSet());
         assertNotNull(repositories);
-        assertEquals(NUMBER_OF_ENTITIES, repositories.size());
+        assertEquals(EXPECTED_NUMBER_OF_ENTITIES, repositories.size());
         return repositories;
     }
 
@@ -150,8 +157,8 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
             }
         });
         assertNotNull(queries);
-        assertEquals(NUMBER_OF_ENTITIES, queries.size(), "We have 3 database entities");
-        assertEquals(NUMBER_OF_QUERIES, queries.values().stream().mapToInt(List::size).sum(), "We have 7 jpa queries");
+        assertEquals(EXPECTED_NUMBER_OF_ENTITIES, queries.size(), "We have 3 database entities");
+        assertEquals(EXPECTED_NUMBER_OF_QUERIES, queries.values().stream().mapToInt(List::size).sum(), "We have 7 jpa queries");
         return queries;
     }
 
@@ -164,7 +171,7 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
             }).toList();
 
         List<NativeQueryRecord> flatList = capturedSql.stream().flatMap(List::stream).toList();
-        assertEquals(NUMBER_OF_QUERIES, flatList.size(), "We found all queries");
+        assertEquals(EXPECTED_NUMBER_OF_QUERIES, flatList.size(), "We found all queries");
         return flatList;
     }
 
