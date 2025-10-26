@@ -48,7 +48,7 @@ public class JpaScannerSqlExecutionPlanTest extends AbstractSqlExecutionPlanTest
     private static final Pattern PARAM_NAME_PATTERN = Pattern.compile(":(\\w+)");
     private static final Integer EXPECTED_NUMBER_OF_ENTITIES = 3;
     private static final Integer EXPECTED_NUMBER_OF_QUERIES = 7;
-    private static final Integer MAX_PERSONS = 1;
+    private static final Integer MAX_PERSONS = 1000;
     private static final Integer MAX_ADDRESSES = 5;
     private static final Integer MAX_ACTIVITIES = 100;
 

@@ -50,7 +50,18 @@ Following tests are created:
 2. [SqlCaptureInspectorTest] - test for custom `org.hibernate.resource.jdbc.spi.StatementInspector` implementation. We check whether we are able to collect all sql queries or not.
 3. [SqlExecutionPlanTest] - test whether good query has a good plan and cost and vice versa, bad query has a bad plan. 
 4. [JpaToSqlConversionTest] - test for checking, whether translation from JPA into sql works properly
-5. [JpaScannerSqlExecutionPlanTest] - all in one test. This test scan repositories, find jpa queries and translates it into native sql queries. This is our input for test. Next step is to create example entities, run `ANALYZE` command and finally we check execution plans and costs for each query.
+5. [JpaScannerSqlExecutionPlanTest] - all in one test. This test scan repositories, find jpa queries and translates it into native sql queries. This is our input for test. Next step is to create example entities, run `ANALYZE` command, and finally we check execution plans and costs for each query. Because test uses [Test Containers] (not real database), we cannot make direct assertions in that test (some queries have full scan, some do not have full scan, etc.). In your case, you should connect to real database and test your queries against real statistics. Instead of assertions, test will print result similar output to:
+
+
+| SQL                                                                                                                                            | Full Scan | Cost   |
+|:-----------------------------------------------------------------------------------------------------------------------------------------------|:----------|:-------|
+| select a1_0.id,a1_0.city,a1_0.person_id,a1_0.postal_code,a1_0.street from address a1_0 where lower(a1_0.city) = lower('XCVTBDIXA')             | true      | 18.00  |
+| select a1_0.id,a1_0.city,a1_0.person_id,a1_0.postal_code,a1_0.street from address a1_0 where a1_0.person_id = 6463                             | true      | 18.00  |
+| select p1_0.id,p1_0.email,p1_0.name from person p1_0 where p1_0.name = 'AAIQYS'                                                                | true      | 8.00   |
+| select al1_0.id,al1_0.action,al1_0.person_id,al1_0.timestamp from activity_log al1_0 where al1_0.timestamp >= '2047-08-04T22:52:26.212092858'  | true      | 367.00 |
+| select al1_0.id,al1_0.action,al1_0.person_id,al1_0.timestamp from activity_log al1_0 where al1_0.person_id = 4975 and al1_0.action = 'AEOKIFJ' | false     | 8.27   |
+| update activity_log al1_0 set action = 'PITXXYCPPA' where al1_0.id = 3851                                                                      | false     | 8.27   |
+| update activity_log al1_0 set action = 'IDEUPZV' where al1_0.person_id = 3444                                                                  | true      | 367.00 |
 
 ## Postgres SQLs
 
@@ -100,3 +111,4 @@ Output should be similar to this:
 [SqlExecutionPlanTest]: src/test/java/pl/db/plan/scanner/inspector/SqlExecutionPlanTest.java
 [JpaToSqlConversionTest]: src/test/java/pl/db/plan/scanner/inspector/JpaToSqlConversionTest.java
 [JpaScannerSqlExecutionPlanTest]: src/test/java/pl/db/plan/scanner/inspector/JpaScannerSqlExecutionPlanTest.java
+[Test Containers]: https://testcontainers.com/
